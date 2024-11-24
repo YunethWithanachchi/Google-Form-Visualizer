@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Survey Results</title>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+        google.charts.load('current', { packages: ['corechart', 'table'] });
+
+        // Fetch data and render charts
+        async function fetchAndRender() {
+            const response = await fetch('https://script.google.com/macros/s/AKfycbz1v-LO5mh3WAwsEJHXe92z6oBMBuU9OphBWAttFd3-tMjI7R9rngWOUq-uMbs_LI7l/exec');
+            const { responseCount, questionsData } = await response.json();
+
+            document.getElementById('response-count').innerText = `Total Responses: ${responseCount}`;
+
+            questionsData.forEach(({ question, type, data }, index) => {
+                const container = document.createElement('div');
+                container.id = `chart-${index}`;
+                container.style.marginBottom = '30px';
+                document.body.appendChild(container);
+
+                if (type === 'pie') renderPieChart(question, data, container.id);
+                else if (type === 'bar') renderBarChart(question, data, container.id);
+                else renderTextTable(question, data, container.id);
+            });
+        }
+
+        function renderPieChart(question, data, containerId) {
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Option');
+            dataTable.addColumn('number', 'Count');
+            Object.entries(data).forEach(([key, value]) => dataTable.addRow([key, value]));
+
+            const options = { title: question, pieHole: 0.4 };
+            const chart = new google.visualization.PieChart(document.getElementById(containerId));
+            chart.draw(dataTable, options);
+        }
+
+        function renderBarChart(question, data, containerId) {
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Option');
+            dataTable.addColumn('number', 'Count');
+            Object.entries(data).forEach(([key, value]) => dataTable.addRow([key, value]));
+
+            const options = { title: question, hAxis: { title: 'Options' }, vAxis: { title: 'Count' } };
+            const chart = new google.visualization.BarChart(document.getElementById(containerId));
+            chart.draw(dataTable, options);
+        }
+
+        function renderTextTable(question, data, containerId) {
+            const container = document.getElementById(containerId);
+            const title = document.createElement('h3');
+            title.innerText = question;
+            container.appendChild(title);
+
+            const table = document.createElement('table');
+            table.border = '1';
+            const tbody = document.createElement('tbody');
+            data.forEach(text => {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.innerText = text;
+                row.appendChild(cell);
+                tbody.appendChild(row);
+            });
+            table.appendChild(tbody);
+            container.appendChild(table);
+        }
+
+        google.charts.setOnLoadCallback(fetchAndRender);
+    </script>
+</head>
+<body>
+<h1>Survey Results</h1>
+<div id="response-count"></div>
+</body>
+</html>

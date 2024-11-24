@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Survey Responses Counter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        h1 {
+            font-size: 3rem;
+            color: #4caf50;
+        }
+        #counter {
+            font-size: 5rem;
+            color: #2196f3;
+        }
+    </style>
+</head>
+<body>
+<h1>Survey Responses</h1>
+<div id="counter">Loading...</div>
+<script>
+    async function fetchResponseCount() {
+        try {
+            const response = await fetch("https://script.google.com/macros/s/AKfycbznyPBTFc0yOL0lkcjVGAaQ9tY9j2Sqh7nK6NiGUrUaCY9DMDPJiUC_uYqsdh07_7Dn/exec");
+            const data = await response.json();
+            document.getElementById("counter").textContent = data.responses;
+        } catch (error) {
+            document.getElementById("counter").textContent = "Error loading data!";
+            console.error("Error fetching response count:", error);
+        }
+    }
+
+    // Refresh the counter every 5 seconds
+    setInterval(fetchResponseCount, 5000);
+    fetchResponseCount(); // Initial load
+</script>
+</body>
+</html>
