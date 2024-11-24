@@ -21,7 +21,7 @@
 
                 if (type === 'pie') renderPieChart(question, data, container.id);
                 else if (type === 'bar') renderBarChart(question, data, container.id);
-                else renderTextTable(question, data, container.id);
+                else {renderTextTable(question, data, container.id);}
             });
         }
 
@@ -31,7 +31,7 @@
             dataTable.addColumn('number', 'Count');
             Object.entries(data).forEach(([key, value]) => dataTable.addRow([key, value]));
 
-            const options = { title: question, pieHole: 0.4 };
+            const options = { title: question, width: 800, height: 500, pieHole: 0.4 };
             const chart = new google.visualization.PieChart(document.getElementById(containerId));
             chart.draw(dataTable, options);
         }
@@ -42,7 +42,7 @@
             dataTable.addColumn('number', 'Count');
             Object.entries(data).forEach(([key, value]) => dataTable.addRow([key, value]));
 
-            const options = { title: question, hAxis: { title: 'Options' }, vAxis: { title: 'Count' } };
+            const options = { title: question,width: 800, height: 500 , hAxis: { title: 'Options' }, vAxis: { title: 'Count' } };
             const chart = new google.visualization.BarChart(document.getElementById(containerId));
             chart.draw(dataTable, options);
         }
