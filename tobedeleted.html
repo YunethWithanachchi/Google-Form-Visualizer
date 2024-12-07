@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Dynamic Survey Results</title>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+        google.charts.load('current', { packages: ['corechart'] });
+
+        async function loadDataAndRender() {
+            const spreadsheetUrl = document.getElementById('spreadsheet-url').value;
+
+            if (!spreadsheetUrl) {
+                alert('Please enter a valid Google Sheets URL.');
+                return;
+            }
+
+            try {
+                // Convert the spreadsheet URL to a public API endpoint (if it's public)
+                const sheetIdMatch = spreadsheetUrl.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+                if (!sheetIdMatch) {
+                    alert('Invalid Google Sheets URL. Could not extract sheet ID.');
+                    return;
+                }
+                const sheetId = sheetIdMatch[1];
+                const apiUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
+
+                const response = await fetch(apiUrl);
+                const text = await response.text();
+                console.log(text);
+
+                // Parse the JSON data
+                const jsonData = JSON.parse(text.substring(47).slice(0, -2));
+                const table = jsonData.table;
+
+                if (!table || !table.rows) {
+                    alert('Error: No data found in the provided Google Sheets URL.');
+                    return;
+                }
+
+                // Process the data into a usable structure
+                const responseCount = table.rows.length - 1; // Assuming the first row is a header
+                const questionsData = [];
+
+                const headers = table.cols.map(col => col.label); // Get column headers
+                const rows = table.rows.map(row => row.c.map(cell => (cell ? cell.v : null))); // Get row values
+                rows.slice(1).forEach(row => {
+                    const question = row[headers.indexOf("Question")];
+                    const type = row[headers.indexOf("Type")];
+                    const dataIndexStart = headers.indexOf("Data1"); // Assuming "Data1", "Data2", etc., for data columns
+                    const data = {};
+
+                    for (let i = dataIndexStart; i < headers.length; i++) {
+                        const option = headers[i];
+                        const count = row[i];
+                        if (option && count !== null) data[option] = count;
+                    }
+
+                    questionsData.push({ question, type, data });
+                });
+
+                document.getElementById('response-count').innerText = `Total Responses: ${responseCount}`;
+
+                // Render the charts based on question type
+                questionsData.forEach(({ question, type, data }, index) => {
+                    const container = document.createElement('div');
+                    container.id = `chart-${index}`;
+                    container.style.marginBottom = '30px';
+                    document.getElementById('chart-container').appendChild(container);
+
+                    if (type === 'pie') renderPieChart(question, data, container.id);
+                    else if (type === 'bar') renderBarChart(question, data, container.id);
+                    else if (type === 'text') {
+                        renderLineChart(question, data, container.id);
+                    } else {
+                        renderTextTable(question, data, container.id);
+                    }
+                });
+            } catch (e) {
+                console.error('Error loading data:', e);
+                alert('An error occurred while loading the data.');
+            }
+        }
+
+        function renderPieChart(question, data, containerId) {
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Option');
+            dataTable.addColumn('number', 'Count');
+            Object.entries(data).forEach(([key, value]) => dataTable.addRow([key, value]));
+
+            const options = { title: question, width: 800, height: 500, pieHole: 0.4 };
+            const chart = new google.visualization.PieChart(document.getElementById(containerId));
+            chart.draw(dataTable, options);
+        }
+
+        function renderBarChart(question, data, containerId) {
+            const dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('string', 'Option');
+            dataTable.addColumn('number', 'Count');
+            Object.entries(data).forEach(([key, value]) => dataTable.addRow([key, value]));
+
+            const options = {
+                title: question,
+                width: 800,
+                height: 500,
+                hAxis: { title: 'Options' },
+                vAxis: { title: 'Count' }
+            };
+            const chart = new google.visualization.BarChart(document.getElementById(containerId));
+            chart.draw(dataTable, options);
+        }
+
+        function renderLineChart(question, timestamps, containerId) {
+            const countsByDate = timestamps.reduce((acc, timestamp) => {
+                const date = new Date(timestamp).toLocaleDateString('en-US'); // Format to MM/DD/YYYY
+                acc[date] = (acc[date] || 0) + 1;
+                return acc;
+            }, {});
+
+            const dataArray = [['Date', 'Responses']];
+            for (const [date, count] of Object.entries(countsByDate)) {
+                dataArray.push([date, count]);
+            }
+
+            if (dataArray.length < 3) {
+                const container = document.getElementById(containerId);
+                container.innerHTML = `<p style="color: gray;">Not enough data to render a meaningful graph for "${question}".</p>`;
+                return;
+            }
+
+            const data = google.visualization.arrayToDataTable(dataArray);
+
+            const options = {
+                title: question,
+                curveType: 'function',
+                legend: { position: 'bottom' },
+                hAxis: { title: 'Date', slantedText: true },
+                vAxis: { title: 'Number of Responses' },
+                width: 800,
+                height: 400
+            };
+
+            const chart = new google.visualization.LineChart(document.getElementById(containerId));
+            chart.draw(data, options);
+        }
+
+        function renderTextTable(question, data, containerId) {
+            const container = document.getElementById(containerId);
+            const title = document.createElement('h3');
+            title.innerText = question;
+            container.appendChild(title);
+
+            const table = document.createElement('table');
+            table.border = '1';
+            const tbody = document.createElement('tbody');
+
+            const dataEntries = Object.entries(data);
+            dataEntries.forEach(([key, value]) => {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.innerText = `${key}: ${value}`;
+                row.appendChild(cell);
+                tbody.appendChild(row);
+            });
+
+            table.appendChild(tbody);
+            container.appendChild(table);
+        }
+    </script>
+</head>
+<body>
+<h1>Dynamic Survey Results</h1>
+<label for="spreadsheet-url">Enter Google Sheets URL:</label>
+<input type="text" id="spreadsheet-url" placeholder="Paste your Google Sheets URL here">
+<button onclick="loadDataAndRender()">Generate Graphs</button>
+
+<div id="response-count"></div>
+<div id="chart-container" style="margin-top: 20px;"></div>
+</body>
+</html>
