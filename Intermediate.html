@@ -10,7 +10,8 @@
         async function fetchAndRender() {
             const response = await fetch('https://script.google.com/macros/s/AKfycbz1v-LO5mh3WAwsEJHXe92z6oBMBuU9OphBWAttFd3-tMjI7R9rngWOUq-uMbs_LI7l/exec');
             const { responseCount, questionsData } = await response.json();
-            //console.log(questionsData);
+            console.log(responseCount);
+            console.log(questionsData);
 
             document.getElementById('response-count').innerText = `Total Responses: ${responseCount}`;
 
